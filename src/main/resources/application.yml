@@ -5,16 +5,95 @@ server:
 spring:
   application:
     name: scg
-  config:
-     # config server를 지정하지 않으면 default localhost:8888, 아래 sping.cloud.uri 보다 우선시 한다.
-     #import: "optional:configserver:http://localhost:9001"
-     import: "optional:configserver:${config_servers:http://localhost:9001}" 
-     additional-location: scgw   
   profiles:
     active: ${profile:local}
     include: common
   cloud: 
-    config:
-      uri: ${config_servers:http://localhost:9001}
-      label: ${config_label:main}
+    gateway:
+      globalcors:
+        cors-configurations: 
+          '[/**]': 
+            allowedOrigins: "http://localhost:8080" 
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+      default-filters:
+      - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+#      - name: GlobalFilter
+#        args:
+#          baseMessage: Spring Cloud Gateway GlobalFilter
+#          preLogger: true
+#          postLogger: true
+      routes:
+        - id: login-service
+          uri: http://localhost:8070
+          predicates:
+          - Path=/login/**
+          filters:
+          - name: GlobalFilter
+            args:
+              baseMessage: Account-service Login Call
+              preLogger: true
+              postLogger: true
+#          - name: RewritePath
+#            args:
+#              regexp: /accounts/
+#              replacement: /
+        - id: account-service
+          uri: http://localhost:8070
+          predicates:
+          - Path=/accounts/**
+          filters:
+          - name: GlobalFilter
+            args:
+              baseMessage: Account-service Call
+              preLogger: true
+              postLogger: true
+#          - name: RewritePath
+#            args:
+#              regexp: /accounts/
+#              replacement: /
+        - id: product-service
+          uri: http://localhost:8071
+          predicates:
+          - Path=/products/**
+          filters:
+          - name: GlobalFilter
+            args:
+              baseMessage: Product-service Call
+              preLogger: true
+              postLogger: true
+        - id: reserve-service
+          uri: http://localhost:8072
+          predicates:
+          - Path=/reserve/**
+          filters:
+          - name: GlobalFilter
+            args:
+              baseMessage: Reserve-service Call
+              preLogger: true
+              postLogger: true
+#        - id: ext-reserve-service
+#          uri: http://localhost:8072
+#          predicates:
+#          - Path=/external/**
+#          filters:
+#          - name: GlobalFilter
+#            args:
+#              baseMessage: Reserve-service External Call
+#              preLogger: true
+#              postLogger: true
+#          - name: RewritePath
+#            args:
+#              regexp: /external/
+#              replacement: /
       
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - "gateway"
+  endpoint:
+    gateway:
+      enabled: true
